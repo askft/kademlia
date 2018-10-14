@@ -1,6 +1,6 @@
 # Kademlia in Go
 
-Note: this is a work in progress. Not usable for production. Personal project!
+**Note: this is a work in progress. Not usable for production. Personal project!**
 
 The implementation is based various descriptions available online, including but not limited to
 
