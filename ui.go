@@ -23,27 +23,11 @@ func RunUI() {
 	}
 }
 
-// TODO should verify input better
 func parseUIInput(input string) (string, string, error) {
 	sep := " "
 	tokens := strings.Split(input, sep)
-	// for i, token := range tokens {
-	// 	fmt.Printf("%d: %s\n", i, token)
-	// }
-	// if len(tokens) < 1 {
-	// 	return "", "", errors.New(`  usage:
-	// store [string]
-	// get   [key]
-	// bootstrap`)
-	// }
-	var tmp []string
-	for i := 1; i < len(tokens); i++ {
-		tmp = append(tmp, tokens[i])
-	}
-	var (
-		action = strings.ToLower(tokens[0])
-		data   = strings.Join(tmp, sep)
-	)
+	action := strings.ToLower(tokens[0])
+	data := strings.Join(tokens[1:], sep)
 	// fmt.Printf("action=[%s], data=[%s]\n", action, data)
 	return action, data, nil
 }

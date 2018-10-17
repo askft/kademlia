@@ -1,33 +1,26 @@
-package main
+package peer
 
 import (
 	"net"
+
+	"p2p/node"
+	"p2p/store"
 )
 
 const (
-	idLength = 20           // The byte length of a node ID.
-	α        = 3            // Parallelism parameter for RPC calls.
-	b        = idLength * 8 // Bit length of node ID and key.
-	k        = 20           // Bucket size.
+	α = 3  // Parallelism parameter for RPC calls.
+	k = 20 // Bucket size.
 
 	updateTimeout = 1000 // Milliseconds
 )
 
 // Options contains general configuration parameters for a peer.
 type Options struct {
-	id        NodeID
-	host      net.IP
-	port      string
-	store     Store
-	networkID string
-}
-
-var defaultOptions = &Options{
-	id:        GenerateRandomNodeID(),
-	host:      getLocalIP(),
-	port:      "4001",
-	store:     NewLocalStore(),
-	networkID: "v1",
+	Key       node.Key
+	Host      net.IP
+	Port      string
+	Store     store.Store
+	NetworkID string
 }
 
 // TimeOptions contains time-specific configuration parameters for a peer.

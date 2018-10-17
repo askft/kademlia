@@ -1,4 +1,4 @@
-package main
+package node
 
 import (
 	"fmt"
@@ -9,26 +9,29 @@ import (
 	Useful operations on the bit level.
 */
 
-// FindSetBits returns a list of indices for the bits of `id` that equal 1.
+// FindSetBits returns a list of indices for the bits of `bs` that equal 1.
 // Example: `00100101 --> [5, 2, 0]`.
-func FindSetBits(id NodeID) []int {
-	idSet := []int{}
-	for i := 0; i < len(id); i++ {
+func FindSetBits(bs []byte) []int {
+	setBits := []int{}
+	for i := 0; i < len(bs); i++ {
 		byteSet := []int{}
 		for j := 7; j >= 0; j-- {
-			if isSet(id[i], j) {
-				byteSet = append(byteSet, (len(id)-i-1)*8+j)
+			if isSet(bs[i], j) {
+				byteSet = append(byteSet, (len(bs)-i-1)*8+j)
 			}
 		}
-		idSet = append(idSet, byteSet...)
+		setBits = append(setBits, byteSet...)
 	}
-	return idSet
+	return setBits
 }
 
-// BytePrefixLength returns the index of the MSB starting from index(LSB) == 1.
-// Example: 00011111 --> 5.
+// BytePrefixLength returns the number of bits preceeding the most significant.
+// Exampls: 00011111 --> 3. 10101010 --> 0. 00000000 --> 7 [sic!].
 func BytePrefixLength(x byte) int {
-	return 8 - log2(x)
+	if x == 0 {
+		return 7
+	}
+	return 7 - log2(x)
 }
 
 func isSet(b byte, i int) bool {
@@ -37,7 +40,7 @@ func isSet(b byte, i int) bool {
 }
 
 func log2(x byte) int {
-	r := 0
+	r := -1
 	for ; x != 0; x >>= 1 {
 		r++
 	}

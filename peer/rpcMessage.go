@@ -1,14 +1,25 @@
-package main
+package peer
+
+import (
+	"p2p/node"
+)
 
 type MessageCommon struct {
-	Sender NodeID
-	Nonce  NodeID
+	Sender node.Contact
+	Nonce  node.Key
 }
 
-func createCommon(sender, nonce NodeID) MessageCommon {
+func createCommon(sender node.Contact, nonce node.Key) MessageCommon {
 	return MessageCommon{
 		Sender: sender,
 		Nonce:  nonce,
+	}
+}
+
+func createCommonWithNonce(sender node.Contact) MessageCommon {
+	return MessageCommon{
+		Sender: sender,
+		Nonce:  node.GenerateRandomKey(),
 	}
 }
 
@@ -31,28 +42,22 @@ type MessageResponseStore struct {
 
 type MessageRequestFindNode struct {
 	MessageCommon
-	Target NodeID
+	Target node.Key
 }
 
 type MessageResponseFindNode struct {
 	MessageCommon
-	Contacts []Contact
+	Contacts []node.Contact
 }
 
 type MessageRequestFindValue struct {
 	MessageCommon
-	Target NodeID
+	Target node.Key
 }
 
 // MessageResponseFindValue NOTE: Either Contacts or Data should be empty.
 type MessageResponseFindValue struct {
 	MessageCommon
-	Contacts []Contact
+	Contacts []node.Contact
 	Data     []byte
-}
-
-// This is unnecessary, will be returned from the RPC call instead.
-type MessageResponseError struct {
-	MessageCommon
-	Err error
 }
