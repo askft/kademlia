@@ -14,7 +14,6 @@ import (
 type Bucket []node.Contact
 
 // Peer keeps track of relevant state for the Kademlia network.
-// TODO embed Options instead of having all this shit
 type Peer struct {
 	node.Contact
 	store        store.Store
@@ -55,12 +54,6 @@ func (peer *Peer) Bootstrap(bootstrapContact node.Contact) {
 		q := peer.bucketIndex(contact.Key)
 		peer.RefreshBucket(q)
 		peer.UpdateTable(contact)
-	}
-}
-
-func printContacts(contacts []node.Contact) {
-	for _, contact := range contacts {
-		fmt.Println(" -", contact)
 	}
 }
 
@@ -105,8 +98,6 @@ func (peer *Peer) FindClosest(target node.Key, n int) []node.Contact {
 			}
 		}
 	}
-	// fmt.Println("FindClosest is returning:")
-	// printContacts(closest)
 	return closest
 }
 
@@ -155,8 +146,8 @@ func (peer *Peer) UpdateTable(contact node.Contact) {
 		bucket.moveToTail(0)
 	case <-time.After(updateTimeout * time.Millisecond):
 		fmt.Println("ping timed out")
-		(*bucket)[0] = contact // Replace first item...
-		bucket.moveToTail(0)   // ... and move it to the tail.
+		bucket.replace(0, contact) // Replace first item...
+		bucket.moveToTail(0)       // ... and move it to the tail.
 	}
 	printUpdate("ping")
 }
@@ -169,6 +160,10 @@ func (peer *Peer) bucketFor(key node.Key) *Bucket {
 
 func (peer *Peer) bucketIndex(key node.Key) int {
 	return node.KeyBitLen - 1 - node.Distance(peer.Key, key).PrefixLength()
+}
+
+func (bucket *Bucket) replace(i int, contact node.Contact) {
+	(*bucket)[i] = contact
 }
 
 func (bucket *Bucket) moveToTail(i int) {
