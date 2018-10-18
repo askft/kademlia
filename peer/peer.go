@@ -42,23 +42,19 @@ func NewPeer(options *Options) (*Peer, error) {
 func (peer *Peer) Bootstrap(bootstrapContact node.Contact) {
 
 	// Add the bootstrap node into this peer's appropriate bucket.
-	peer.BucketUpdate(bootstrapContact)
+	peer.UpdateTable(bootstrapContact)
 
-	// Perform a self-lookup against the bootstrap node. This populates other
-	// peers' k-buckets with this peer, and populates this peer's k-buckets
-	// with peers known by the bootstrap node.
-	done := make(chan MessageResponseFindNode)
-	peer.SendFindNode(bootstrapContact, peer.Key, done)
-	res := <-done
+	// Perform a self-lookup against the known nodes, of which the just
+	// added bootstrap node is the only one. This populates other peers'
+	// k-buckets with this peer, [[[and populates this peer's k-buckets with
+	// peers known by the bootstrap node. (NOT TRUE?)]]]
+	contacts := peer.IterativeFindNode(peer.Key)
 
-	fmt.Println("contacts from IterativeFN")
-	printContacts(res.Contacts)
-
-	// Populate this peer's buckets with found contacts.
-	for _, contact := range res.Contacts {
+	// Populate this peer's table with the found contacts.
+	for _, contact := range contacts {
 		q := peer.bucketIndex(contact.Key)
 		peer.RefreshBucket(q)
-		peer.BucketUpdate(contact) // TODO Recently added this - correct?
+		peer.UpdateTable(contact)
 	}
 }
 
@@ -68,6 +64,7 @@ func printContacts(contacts []node.Contact) {
 	}
 }
 
+// PrintAllContacts prints all contacts known to this peer.
 func (peer *Peer) PrintAllContacts() {
 	for _, bucket := range peer.routingTable {
 		for _, contact := range bucket {
@@ -108,6 +105,8 @@ func (peer *Peer) FindClosest(target node.Key, n int) []node.Contact {
 			}
 		}
 	}
+	// fmt.Println("FindClosest is returning:")
+	// printContacts(closest)
 	return closest
 }
 
@@ -121,16 +120,20 @@ func tryFill(closest *[]node.Contact, bucket Bucket, n int) bool {
 	return false
 }
 
-// BucketUpdate adds `contact` into `peer`'s appropriate bucket if necessary.
-func (peer *Peer) BucketUpdate(contact node.Contact) {
+// UpdateTable adds `contact` into `peer`'s appropriate bucket if necessary.
+func (peer *Peer) UpdateTable(contact node.Contact) {
 	bucket := peer.bucketFor(contact.Key)
+
+	printUpdate := func(action string) {
+		fmt.Printf("UpdateTable (%s):\n - local:  %s\n - remote: %s\n - bucket: %d\n\n",
+			action, peer.Contact, contact, peer.bucketIndex(contact.Key))
+	}
 
 	// If the contact already exists, move it to the end of the bucket.
 	for i, c := range *bucket {
 		if c.Key == contact.Key {
 			bucket.moveToTail(i)
-			fmt.Printf("Updated %s, bucket %d with contact %s (tail move).\n",
-				peer.Address(), peer.bucketIndex(contact.Key), contact.Address())
+			printUpdate("tail move")
 			return
 		}
 	}
@@ -138,8 +141,7 @@ func (peer *Peer) BucketUpdate(contact node.Contact) {
 	// If the bucket has space, add the new contact to the bucket.
 	if len(*bucket) < k {
 		bucket.addToTail(contact)
-		fmt.Printf("Updated %s, bucket %d with contact %s (tail add).\n",
-			peer.Address(), peer.bucketIndex(contact.Key), contact.Address())
+		printUpdate("tail add")
 		return
 	}
 
@@ -156,13 +158,12 @@ func (peer *Peer) BucketUpdate(contact node.Contact) {
 		(*bucket)[0] = contact // Replace first item...
 		bucket.moveToTail(0)   // ... and move it to the tail.
 	}
-	fmt.Printf("Updated %s, bucket %d with contact %s.\n",
-		peer.Address(), peer.bucketIndex(contact.Key), contact.Address())
+	printUpdate("ping")
 }
 
+// Bucket operations ---------------------------------------------------------
+
 func (peer *Peer) bucketFor(key node.Key) *Bucket {
-	fmt.Printf("%s's bucket index for %s: %d\n",
-		peer.Key, key, peer.bucketIndex(key))
 	return &peer.routingTable[peer.bucketIndex(key)]
 }
 

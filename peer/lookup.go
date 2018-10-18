@@ -13,24 +13,23 @@ import (
 		- IterativeFindNode
 		- IterativeFindValue
 
-	NOTE:
-		- IterativeFindNode and IterativeFindValue are almost exactly the same.
-
 	TODO
-		- Look up if we need WaitGroups
 		- xlattice: When an IterativeFindValue succeeds, the initiator
 		  must store the key/value pair at the closest node seen which
 		  did not return the value.
+		- Check return values from RPC calls for empty message responses.
 */
 
 // IterativeStore finds the <=k closest nodes to `target`
 // and sends `data` in a STORE RPC to each.
 func (peer *Peer) IterativeStore(target node.Key, data []byte) {
-	done := make(chan MessageResponseStore) // TODO empty means error, check all <-done
+	done := make(chan MessageResponseStore)
 	contacts := peer.IterativeFindNode(target)
 	for _, contact := range contacts {
 		go peer.SendStore(contact, data, done)
 	}
+	// res := <-done
+	// TODO print something about success?
 }
 
 // IterativeFindNode finds the <=k closest nodes to `target`.
@@ -38,8 +37,8 @@ func (peer *Peer) IterativeFindNode(target node.Key) []node.Contact {
 	var (
 		results = []node.Contact{}
 		todo    = []node.Contact{}
-		seen    = make(map[string]bool)              // the string is Key.String()
-		done    = make(chan MessageResponseFindNode) // TODO empty means error, check all <-done
+		seen    = make(map[string]bool)
+		done    = make(chan MessageResponseFindNode)
 	)
 	for _, contact := range peer.FindClosest(target, α) {
 		results = append(results, contact)
@@ -54,7 +53,7 @@ func (peer *Peer) IterativeFindNode(target node.Key) []node.Contact {
 	for i := 0; i < α && len(todo) > 0; i++ {
 		contact := todo[0]
 		todo = todo[1:]
-		go peer.SendFindNode(contact, target, done) // the recieves node does FindClosest
+		go peer.SendFindNode(contact, target, done) // the reciever node does FindClosest
 		pending++
 	}
 
@@ -64,6 +63,12 @@ func (peer *Peer) IterativeFindNode(target node.Key) []node.Contact {
 		pending--
 
 		for _, contact := range res.Contacts {
+
+			// self
+			if node.Equal(peer.Key, contact.Key) {
+				continue
+			}
+
 			// Node hasn't been queried before
 			if _, ok := seen[contact.Key.String()]; !ok {
 				results = append(results, contact)
@@ -93,8 +98,8 @@ func (peer *Peer) IterativeFindValue(target node.Key) ([]byte, []node.Contact) {
 	var (
 		results = []node.Contact{}
 		todo    = []node.Contact{}
-		seen    = make(map[string]bool)               // the string is Key.String()
-		done    = make(chan MessageResponseFindValue) // TODO empty means error, check all <-done
+		seen    = make(map[string]bool)
+		done    = make(chan MessageResponseFindValue)
 	)
 	for _, contact := range peer.FindClosest(target, α) {
 		results = append(results, contact)

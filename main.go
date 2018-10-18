@@ -39,6 +39,12 @@ func main() {
 		return
 	}
 
+	// TODO Temporary workaround hack for bootstrap node.
+	// 4000 is the bootstrap node port when running locally!
+	if port == "4000" {
+		p.Key = node.Key{}
+	}
+
 	wg.Add(3)
 	{
 		go peer.RunServer(p, &wg)

@@ -2,6 +2,7 @@ package peer
 
 import (
 	"net"
+	"time"
 
 	"p2p/node"
 	"p2p/store"
@@ -25,10 +26,10 @@ type Options struct {
 
 // TimeOptions contains time-specific configuration parameters for a peer.
 type TimeOptions struct {
-	Expire    uint // TTL for KV pair from original publication date
-	Refresh   uint // Time until an unaccessed bucket must be refreshed
-	Replicate uint // Interval between replication events, when a node is required to publish its entire database
-	Republish uint // Time after which original publisher must republish a KV pair
+	Expire    time.Duration // TTL for KV pair from original publication date
+	Refresh   time.Duration // Time until an unaccessed bucket must be refreshed
+	Replicate time.Duration // Interval between replication events, when a node is required to publish its entire database
+	Republish time.Duration // Time after which original publisher must republish a KV pair
 }
 
 var timeOptions = TimeOptions{
