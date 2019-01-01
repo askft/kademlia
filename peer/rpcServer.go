@@ -6,7 +6,7 @@ import (
 	"net/rpc"
 	"sync"
 
-	"p2p/encoding"
+	"github.com/askft/kademlia/encoding"
 )
 
 /*

@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"p2p/node"
+	"github.com/askft/kademlia/node"
 )
 
 type MessageCommon struct {

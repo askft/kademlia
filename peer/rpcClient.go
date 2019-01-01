@@ -3,7 +3,7 @@ package peer
 import (
 	"net/rpc"
 
-	"p2p/node"
+	"github.com/askft/kademlia/node"
 )
 
 /*

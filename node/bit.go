@@ -47,7 +47,7 @@ func log2(x byte) int {
 	return r
 }
 
-// StringBytes returns a binary string representation of a byte sequence.
+// stringBytes returns a binary string representation of a byte sequence.
 func stringBytes(bs []byte) string {
 	s := []string{}
 	for i := 0; i < len(bs); i++ {

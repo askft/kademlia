@@ -3,8 +3,8 @@ package peer
 import (
 	"fmt"
 
-	"p2p/encoding"
-	"p2p/node"
+	"github.com/askft/kademlia/encoding"
+	"github.com/askft/kademlia/node"
 )
 
 /*

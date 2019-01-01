@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"p2p/encoding"
+	"github.com/askft/kademlia/encoding"
 )
 
 // LocalStore is an in-memory (volatile) store for DHT data.

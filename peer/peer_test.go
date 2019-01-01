@@ -1,8 +1,9 @@
 package peer
 
 import (
-	"p2p/node"
 	"testing"
+
+	"github.com/askft/kademlia/node"
 )
 
 func init() {

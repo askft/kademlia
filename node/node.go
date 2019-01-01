@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"p2p/encoding"
+	"github.com/askft/kademlia/encoding"
 )
 
 /*

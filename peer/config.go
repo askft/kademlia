@@ -4,8 +4,8 @@ import (
 	"net"
 	"time"
 
-	"p2p/node"
-	"p2p/store"
+	"github.com/askft/kademlia/node"
+	"github.com/askft/kademlia/store"
 )
 
 const (

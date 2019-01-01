@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"p2p/node"
-	"p2p/store"
+	"github.com/askft/kademlia/node"
+	"github.com/askft/kademlia/store"
 )
 
 // Bucket is a list of contacts. Note that a bucket

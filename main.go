@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"sync"
 
-	"p2p/encoding"
-	"p2p/node"
-	"p2p/peer"
-	"p2p/store"
+	"github.com/askft/kademlia/encoding"
+	"github.com/askft/kademlia/node"
+	"github.com/askft/kademlia/peer"
+	"github.com/askft/kademlia/store"
 )
 
 var wg sync.WaitGroup
