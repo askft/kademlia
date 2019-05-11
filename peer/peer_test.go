@@ -6,24 +6,23 @@ import (
 	"github.com/askft/kademlia/node"
 )
 
-func init() {
-}
+func init() {}
 
 func TestXorDistancePrefixLength(t *testing.T) {
 	a := node.Key{}
 	b := node.Key{}
 
 	b[19] = 0 // default
-	assertEqual(t, node.Distance(a, b).PrefixLength(), 159)
+	assertEqual(t, a.Distance(b).PrefixLength(), 159)
 
 	b[19] = 1
-	assertEqual(t, node.Distance(a, b).PrefixLength(), 159)
+	assertEqual(t, a.Distance(b).PrefixLength(), 159)
 
 	b[19] = 2
-	assertEqual(t, node.Distance(a, b).PrefixLength(), 158)
+	assertEqual(t, a.Distance(b).PrefixLength(), 158)
 
 	b[0] = 255
-	assertEqual(t, node.Distance(a, b).PrefixLength(), 0)
+	assertEqual(t, a.Distance(b).PrefixLength(), 0)
 }
 
 func assertEqual(t *testing.T, value, expected interface{}) {

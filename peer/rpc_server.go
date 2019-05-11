@@ -2,9 +2,12 @@ package peer
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/rpc"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/askft/kademlia/encoding"
 )
@@ -74,27 +77,45 @@ func (r *RPC) RecvFindValue(req *MessageRequestFindValue, res *MessageResponseFi
 	return nil
 }
 
-// RunServer starts an RPC server that listens for RPC calls from other peers.
-func RunServer(peer *Peer, wg *sync.WaitGroup) error {
-	defer wg.Done()
+type Server struct {
+	port     string
+	addr     *net.TCPAddr
+	listener *net.TCPListener
+}
 
-	rpc.Register(&RPC{peer})
-
-	tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+peer.Port)
+func NewServer(peer *Peer) (*Server, error) {
+	err := rpc.Register(&RPC{peer})
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+peer.Contact.Port)
+	if err != nil {
+		return nil, err
 	}
 
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Printf("Started RPC server on port %s.\n", peer.Port)
+	return &Server{
+		peer.Contact.Port,
+		tcpAddr,
+		listener,
+	}, nil
+}
+
+// RunServer starts an RPC server that listens for RPC calls from other peers.
+func (s *Server) Run(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	fmt.Printf("Starting RPC server on port %s.\n", s.port)
 
 	for {
-		conn, err := listener.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
+			log.Println(errors.Wrap(err, "failed to connect"))
 			continue
 		}
 		go rpc.ServeConn(conn)

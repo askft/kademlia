@@ -1,4 +1,4 @@
-package peer
+package intset
 
 import (
 	"sort"
@@ -15,7 +15,7 @@ type IntSet struct {
 }
 
 // NewIntSet returns a new IntSet.
-func NewIntSet() *IntSet {
+func New() *IntSet {
 	return &IntSet{
 		set:    make(map[int]int),
 		values: make([]int, 0),

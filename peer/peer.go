@@ -2,9 +2,9 @@ package peer
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/askft/kademlia/intset"
 	"github.com/askft/kademlia/node"
 	"github.com/askft/kademlia/store"
 )
@@ -15,25 +15,27 @@ type Bucket []node.Contact
 
 // Peer keeps track of relevant state for the Kademlia network.
 type Peer struct {
-	node.Contact
+	Contact      node.Contact
 	store        store.Store
-	networkID    string                    // Prevents networks merging together.
-	routingTable [node.KeyBitLen]Bucket    // Every bucket corresponds to a specific distance.
-	refreshMap   [node.KeyBitLen]time.Time // TODO Look closer into when/where to refresh.
-	mutex        sync.Mutex                // TODO Use RWMutex instead? And check carefully where this might be needed.
+	networkID    string                      // Prevents networks merging together.
+	routingTable [node.KeySizeBits]Bucket    // Every bucket corresponds to a specific distance.
+	refreshMap   [node.KeySizeBits]time.Time // TODO Look closer into when/where to refresh.
+	// mutex        sync.Mutex                // TODO Use RWMutex instead? And check carefully where this might be needed.
 }
 
 // NewPeer initializes a peer and returns a handle to it.
 func NewPeer(options *Options) (*Peer, error) {
-	peer := &Peer{}
-	peer.Key = options.Key
-	peer.Host = options.Host
-	peer.Port = options.Port
-	peer.store = options.Store
-	peer.networkID = options.NetworkID
-	peer.routingTable = [node.KeyBitLen]Bucket{}
-	peer.refreshMap = [node.KeyBitLen]time.Time{}
-	return peer, nil
+	return &Peer{
+		Contact: node.Contact{
+			Key:  options.Key,
+			Host: options.Host,
+			Port: options.Port,
+		},
+		store:        options.Store,
+		networkID:    options.NetworkID,
+		routingTable: [node.KeySizeBits]Bucket{},
+		refreshMap:   [node.KeySizeBits]time.Time{},
+	}, nil
 }
 
 // Bootstrap lets `peer` join a network using a predefined set of nodes.
@@ -47,7 +49,7 @@ func (peer *Peer) Bootstrap(bootstrapContact node.Contact) {
 	// added bootstrap node is the only one. This populates other peers'
 	// k-buckets with this peer, [[[and populates this peer's k-buckets with
 	// peers known by the bootstrap node. (NOT TRUE?)]]]
-	contacts := peer.IterativeFindNode(peer.Key)
+	contacts := peer.IterativeFindNode(peer.Contact.Key)
 
 	// Populate this peer's table with the found contacts.
 	for _, contact := range contacts {
@@ -74,9 +76,9 @@ func (peer *Peer) RefreshBucket(q int) {
 // FindClosest finds the `n` closest contacts to `target` in
 // the peer's routing table.
 func (peer *Peer) FindClosest(target node.Key, n int) []node.Contact {
-	d := node.Distance(peer.Key, target)
+	d := peer.Contact.Key.Distance(target)
 	closest := []node.Contact{}
-	seq := NewIntSet()
+	seq := intset.New()
 	seq.AddMany(node.FindSetBits(d[:]))
 
 	// Descend through 1-bits in `d` toward 0 and try to fill `closest`.
@@ -89,7 +91,7 @@ func (peer *Peer) FindClosest(target node.Key, n int) []node.Contact {
 	}
 
 	// If `closest` is still not filled, search unvisisted buckets [0, 160).
-	for q := 0; q < node.KeyBitLen; q++ {
+	for q := 0; q < node.KeySizeBits; q++ {
 		if !seq.Has(q) {
 			bucket := peer.routingTable[q]
 			if tryFill(&closest, bucket, n) {
@@ -116,8 +118,14 @@ func (peer *Peer) UpdateTable(contact node.Contact) {
 	bucket := peer.bucketFor(contact.Key)
 
 	printUpdate := func(action string) {
-		fmt.Printf("UpdateTable (%s):\n - local:  %s\n - remote: %s\n - bucket: %d\n\n",
-			action, peer.Contact, contact, peer.bucketIndex(contact.Key))
+		fmt.Printf(
+			"UpdateTable (%s):\n"+
+				" - local:  %s\n"+
+				" - remote: %s\n"+
+				" - bucket: %d\n"+
+				"\n",
+			action, peer.Contact, contact, peer.bucketIndex(contact.Key),
+		)
 	}
 
 	// If the contact already exists, move it to the end of the bucket.
@@ -159,7 +167,7 @@ func (peer *Peer) bucketFor(key node.Key) *Bucket {
 }
 
 func (peer *Peer) bucketIndex(key node.Key) int {
-	return node.KeyBitLen - 1 - node.Distance(peer.Key, key).PrefixLength()
+	return node.KeySizeBits - 1 - peer.Contact.Key.Distance(key).PrefixLength()
 }
 
 func (bucket *Bucket) replace(i int, contact node.Contact) {

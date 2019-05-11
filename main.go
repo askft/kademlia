@@ -1,12 +1,14 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/askft/kademlia/encoding"
 	"github.com/askft/kademlia/node"
@@ -16,22 +18,27 @@ import (
 
 var wg sync.WaitGroup
 
+var bootstrapContact = node.Contact{
+	Key:  node.Key{},
+	Host: getLocalIP(),
+	Port: "4000",
+}
+
 func main() {
 	if len(os.Args) != 2 {
-		printUsage()
-		return
+		printUsageAndExit()
 	}
+
 	port := os.Args[1]
 	if !validPort(port) {
-		printUsage()
-		return
+		printUsageAndExit()
 	}
 
 	p, err := peer.NewPeer(&peer.Options{
 		Key:       node.GenerateRandomKey(),
 		Host:      getLocalIP(),
 		Port:      port,
-		Store:     store.NewLocalStore(),
+		Store:     store.NewMemStore(),
 		NetworkID: "v1",
 	})
 	if err != nil {
@@ -42,33 +49,41 @@ func main() {
 	// TODO Temporary workaround hack for bootstrap node.
 	// 4000 is the bootstrap node port when running locally!
 	if port == "4000" {
-		p.Key = node.Key{}
+		p.Contact.Key = node.Key{}
+	}
+
+	ui := NewCommandLineUI()
+
+	server, err := peer.NewServer(p)
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to create server"))
 	}
 
 	wg.Add(3)
-	{
-		go peer.RunServer(p, &wg)
-		go HandleInput(p)
-		go RunUI()
-	}
+	go server.Run(&wg)
+	go ui.Run(&wg)
+	go handleInput(ui, p)
 	wg.Wait()
 }
 
-// HandleInput reads user input from an input channel
-// and dispatches commands that depend on the input.
-func HandleInput(peer *peer.Peer) {
+// handleInput reads a message from a user interface
+// and dispatches a command depending on the message.
+func handleInput(ui UI, peer *peer.Peer) {
 	defer wg.Done()
+
+	fmt.Println(uiUsage)
+
 	for {
-		input := <-uiInputChannel
-		action, rest, err := parseUIInput(input)
+		message := ui.Get()
+		action, rest, err := message.Parse()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(errors.Wrapf(err, "could not parse message %s", string(message)))
 			continue
 		}
 
 		switch action {
 
-		case "store":
+		case ActionStore:
 			data := []byte(rest)
 			key := encoding.HashData(data)
 			keyStr := encoding.EncodeHash(key)
@@ -78,40 +93,33 @@ func HandleInput(peer *peer.Peer) {
 					panic(err)
 				}
 			}
-			fmt.Printf("Stored data. Key: [ %s ].", keyStr)
+			log.Printf("Stored data. Key: [ %s ].", keyStr)
 
-		case "get":
+		case ActionGet:
 			// TODO look first in own store
 			keyStr := rest
 			key, err := encoding.DecodeKeyStr(keyStr)
 			if err != nil {
-				fmt.Printf("Could not decode key [ %s ].\n", keyStr)
+				log.Printf("Could not decode key [ %s ].\n", keyStr)
 				panic(err)
 			}
 			data, contacts := peer.IterativeFindValue(key)
 			if data != nil {
-				fmt.Printf("Data for key [ %s ] is:\n%s\n", keyStr, string(data))
+				log.Printf("Data for key [ %s ] is:\n%s\n", keyStr, string(data))
 			} else if contacts != nil {
-				fmt.Printf("Data for key [ %s ] could not be found.\n", key)
+				log.Printf("Data for key [ %s ] could not be found.\n", key)
 			} else {
 				panic(errors.New("this should not happen"))
 			}
 
-		case "bootstrap":
-			peer.Bootstrap(node.Contact{
-				Key:  node.Key{},
-				Host: getLocalIP(),
-				Port: "4000",
-			})
+		case ActionBootstrap:
+			peer.Bootstrap(bootstrapContact)
 
-		case "table":
+		case ActionTable:
 			peer.PrintAllContacts()
 
 		default:
-			fmt.Println(`  usage:
-    store [string]
-    get   [key]
-    bootstrap`)
+			fmt.Println(uiUsage)
 		}
 	}
 }

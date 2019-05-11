@@ -4,9 +4,7 @@ import (
 	"testing"
 )
 
-func init() {
-
-}
+func init() {}
 
 func TestFindSetBits(t *testing.T) {
 	bs := []byte{5, 2}

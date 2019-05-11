@@ -65,7 +65,7 @@ func (peer *Peer) IterativeFindNode(target node.Key) []node.Contact {
 		for _, contact := range res.Contacts {
 
 			// self
-			if node.Equal(peer.Key, contact.Key) {
+			if peer.Contact.Key.Equal(contact.Key) {
 				continue
 			}
 
